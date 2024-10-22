@@ -1,92 +1,75 @@
-let mediaRecorder;
-let audioChunks = [];
-
-// Function to fetch a question based on the selected domain
-async function fetchQuestion() {
-    const domain = document.getElementById('domain').value;
-    const questionElement = document.getElementById('question');
-
-    questionElement.innerText = "Fetching question...";
+async function fetchJSON(url) {
     try {
-        const response = await fetch(`/get-question/${domain}`);
-        const result = await response.json();
+        const response = await fetch(url);
 
-        if (response.ok) {
-            questionElement.innerText = result.question;
-        } else {
-            questionElement.innerText = `Error: ${result.error || "Failed to fetch question."}`;
+        // Check if the response is JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Received non-JSON response.");
         }
+
+        return await response.json(); // Parse the JSON response
     } catch (error) {
-        questionElement.innerText = "Error: Unable to fetch question.";
-        console.error("Error fetching question:", error);
+        console.error("Error fetching JSON data:", error);
+        throw error; // Re-throw the error for handling outside
     }
 }
 
-// Function to handle audio recording
-async function startRecording() {
+document.getElementById('getQuestion').onclick = async () => {
+    const domain = document.getElementById('domain').value;
+    try {
+        const result = await fetchJSON(`/get-question/${domain}`);
+        const cleanedQuestion = result.question.replace(/[#*]/g, '').trim(); // Clean up the question
+        document.getElementById('question').innerText = cleanedQuestion;
+    } catch (error) {
+        document.getElementById('question').innerText = "Error fetching question.";
+    }
+};
+
+document.getElementById('startButton').onclick = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-        audioChunks = []; // Reset audio chunks for a new recording
 
-        // Event listener for when data is available
         mediaRecorder.ondataavailable = (event) => {
             audioChunks.push(event.data);
         };
 
-        // Event listener for when recording is stopped
         mediaRecorder.onstop = async () => {
-            await processAudio();
-            toggleRecordingButtons(false); // Reset button state
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+
+            try {
+                const response = await fetch('/submit-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Received non-JSON response.");
+                }
+
+                const result = await response.json();
+                document.getElementById('feedback').innerText = result.feedback || "No feedback available.";
+            } catch (error) {
+                console.error("Error submitting audio:", error);
+                document.getElementById('feedback').innerText = "Error submitting audio.";
+            }
         };
 
         mediaRecorder.start();
-        toggleRecordingButtons(true); // Update button state
+        document.getElementById('stopButton').style.display = 'block';
+        document.getElementById('startButton').style.display = 'none';
     } catch (error) {
-        console.error("Error accessing audio devices:", error);
-        alert("Failed to access audio devices. Please ensure your microphone is connected and allowed.");
+        console.error('Error accessing audio devices:', error);
     }
-}
+};
 
-// Function to process and send the recorded audio
-async function processAudio() {
-    const feedbackElement = document.getElementById('feedback');
-    feedbackElement.innerText = "Processing audio...";
-
-    try {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'audio.wav');
-
-        const response = await fetch('/submit-audio', {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            feedbackElement.innerText = result.feedback;
-        } else {
-            feedbackElement.innerText = `Error: ${result.error || "Failed to process audio."}`;
-        }
-    } catch (error) {
-        feedbackElement.innerText = "Error: Unable to process audio.";
-        console.error("Error processing audio:", error);
-    }
-}
-
-// Function to toggle the visibility of start and stop buttons
-function toggleRecordingButtons(isRecording) {
-    document.getElementById('startButton').style.display = isRecording ? 'none' : 'inline';
-    document.getElementById('stopButton').style.display = isRecording ? 'inline' : 'none';
-}
-
-// Event listeners for buttons
-document.getElementById('getQuestion').addEventListener('click', fetchQuestion);
-document.getElementById('startButton').addEventListener('click', startRecording);
-document.getElementById('stopButton').addEventListener('click', () => {
-    if (mediaRecorder) {
-        mediaRecorder.stop();
-    }
-});
+document.getElementById('stopButton').onclick = () => {
+    mediaRecorder.stop();
+    audioChunks = []; // Reset audio chunks for the next recording
+    document.getElementById('stopButton').style.display = 'none';
+    document.getElementById('startButton').style.display = 'block';
+};

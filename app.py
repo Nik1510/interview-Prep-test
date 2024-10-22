@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # Gemini API base URL and API key
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
-API_KEY = "AIzaSyC1d3uER9eKSxpSmYM-eE0__yj1byMJrDA"  # Replace with your actual API key
+API_KEY = "AIzaSyC1d3uER9eKSxpSmYM-eE0__yj1byMJrDA"  
 
 # Route to serve the webpage
 @app.route('/')
