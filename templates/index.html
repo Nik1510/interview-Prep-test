@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Interview Practice</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <main>
+        <h1>Mock Interview Practice</h1>
+
+        <!-- Domain selection and question fetching -->
+        <section>
+            <div>
+                <label for="domain">Select Domain:</label>
+                <select id="domain">
+                    <option value="Android Development">Android Development</option>
+                    <option value="Software Development">Software Development</option>
+                    <option value="Web Development">Web Development</option>
+                </select>
+                <button id="getQuestion">Get Question</button>
+            </div>
+            <h2 id="question"></h2>
+            <div id="loading" style="display:none;">Loading...</div> <!-- Loading indicator -->
+        </section>
+
+        <!-- Audio recording section -->
+        <section>
+            <div>
+                <button id="startButton">Start Recording</button>
+                <button id="stopButton" style="display:none;">Stop Recording</button>
+            </div>
+            <h3>Feedback:</h3>
+            <p id="feedback"></p>
+        </section>
+    </main>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
